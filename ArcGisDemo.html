@@ -1,0 +1,138 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <!--<link rel="stylesheet" href="http://183.224.101.107:8066/arcgis_js_api/library/3.26/3.26/esri/css/esri.css"/>
+    <script src="http://183.224.101.107:8066/arcgis_js_api/library/3.26/3.26/init.js"></script>-->
+    <link rel="stylesheet" href="https://js.arcgis.com/3.27/esri/css/esri.css">
+    <script src="https://js.arcgis.com/3.27/"></script>
+    <script src="jquery-3.3.1.min.js"></script>
+    <style>
+        * {
+            padding: 0px;
+            margin: 0px;
+        }
+
+        html,
+        body,
+        #viewMap {
+            height: 100%;
+            width: 100%;
+        }
+
+        #toc {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 300px;
+            height: 200px;
+        }
+    </style>
+    <script>
+
+        require([
+            "esri/layers/ArcGISDynamicMapServiceLayer",
+            "esri/layers/ArcGISTiledMapServiceLayer",
+            "esri/map",
+            "dojo/parser",
+            "dojo/domReady!",
+            "dijit/layout/BorderContainer",
+            "dijit/layout/ContentPane"
+        ], function (ArcGISDynamicMapServiceLayer, ArcGISTiledMapServiceLayer, Map, parser) {
+            parser.parse();
+            var map = new Map("viewMap", {
+                center: [100.17717952343756, 25.790858620326944],
+                zoom: 12
+                //,basemap: "satellite"
+            });
+
+            //var agoServiceURL = "http://cache1.arcgisonline.cn/arcgis/rest/services/ChinaOnlineCommunity/MapServer"; //中文图
+            // var agoServiceURL = "http://cache1.arcgisonline.cn/arcgis/rest/services/ChinaOnlineStreetGray/MapServer"; //中文图
+            //var agoServiceURL = "http://map.geoq.cn/arcgis/rest/services/ChinaOnlineStreetPurplishBlue/MapServer"; //中文图
+            var agoServiceURL = "http://services.arcgisonline.com/arcgis/rest/services/ESRI_Imagery_World_2D/MapServer"; //卫星图
+            var agoLayer = new ArcGISTiledMapServiceLayer(agoServiceURL);
+            //map.addLayer(agoLayer);
+
+            //"https://183.224.101.107:6443/arcgis/rest/services/DaliResult/MapServer",{displayLevels:[12,13,14,15,16,17]}
+            var layer = new ArcGISDynamicMapServiceLayer("https://183.224.101.107:6443/arcgis/rest/services/DaliResult/MapServer");//大理图
+
+
+
+            var visible = [];//所有服务
+            var parentVisible = [];
+            var html = "";
+            dojo.connect(map, "")
+            dojo.connect(layer, "onLoad", loadLayerList);
+            //读取layer所有图层
+            function loadLayerList(layers) {
+                var infos = layers.layerInfos;
+                for (var i = 0;i<infos.length; i++) {
+                    var info = infos[i];
+                    if (info.defaultVisibility) {
+                        visible.push(info.id);
+                    }
+                    //输出图层列表的html
+                    //infos[0].parentLayerId,id
+                    if (info.parentLayerId === -1) {
+                        parentVisible.push(info.id);
+                        html = html + "<div><input id='" + info.id +
+                            "' name='layerList' class='listCss' type='checkbox'  onclick='setLayerVisibility()' " +
+                            (info.defaultVisibility ? "checked" : "") + " />" + info.name + "</div>";
+                    }
+                }
+                //设置可视图层
+                layer.setVisibleLayers(visible);
+                //在右边显示图层名列表
+                dojo.byId("toc").innerHTML = html;
+            }
+            //onZoomEnd在地图进行缩放时触发,onExtentChange在地图进行改动时触发
+            dojo.connect(map, "onExtentChange", changeScale);
+
+            function changeScale(e, delta, outLevelChange) {
+                
+                //根据地图缩放规模触发事件
+                if (this.getScale() > 200000.1551243942) {
+                    $("#16").attr("checked",false);
+                    setLayerVisibility();
+                }else{
+                    $("#16").attr("checked",true);
+                    setLayerVisibility();
+                }
+                //alert("11");
+            }
+            //设置layer图层是否显示
+            setLayerVisibility = function () {
+                //用dojo.query获取css为listCss的元素数组
+                var inputs = dojo.query(".listCss");
+                visible = [];
+                //对checkbox数组进行变量把选中的id添加到visible
+                for (var i = 0; i < inputs.length; i++) {
+                    if (inputs[i].checked) {
+                        visible.push(inputs[i].id);
+                    }
+                }
+                //设置可视图层
+                layer.setVisibleLayers(visible);
+            }
+            //layer.setVisibleLayers(1);
+            var tmp = map.getLevel;
+            map.addLayer(layer);
+        });
+
+    </script>
+    <script>
+
+    </script>
+</head>
+
+<body class="claro">
+    <div id="viewMap"></div>
+    <div id="toc"></div>
+</body>
+
+</html>
